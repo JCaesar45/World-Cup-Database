@@ -34,4 +34,4 @@ world_cup(>   team_id INTEGER NOT NULL REFERENCES teams(id),
 world_cup(>   PRIMARY KEY (game_id, team_id)
 world_cup(> );
 CREATE TABLE
-world_cup=> 
+world_cup=> pg_dump -cC --inserts -U freecodecamp worldcup > worldcup.sql
