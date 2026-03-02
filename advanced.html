@@ -1,0 +1,1584 @@
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>World Cup Database | PostgreSQL Analytics Engine</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --neon-green: #00ff41;
+      --neon-blue: #00f3ff;
+      --neon-pink: #ff00ff;
+      --dark-bg: #0a0a0f;
+      --card-bg: rgba(20, 20, 30, 0.8);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--dark-bg);
+      color: #e0e0e0;
+      overflow-x: hidden;
+      cursor: crosshair;
+    }
+
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Animated Background */
+    .bg-grid {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image:
+        linear-gradient(rgba(0, 255, 65, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 65, 0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
+      pointer-events: none;
+      z-index: -2;
+    }
+
+    .particles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .particle {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      background: var(--neon-green);
+      border-radius: 50%;
+      opacity: 0.5;
+      animation: float 20s infinite linear;
+    }
+
+    @keyframes float {
+      from {
+        transform: translateY(100vh) translateX(0);
+      }
+
+      to {
+        transform: translateY(-10vh) translateX(100px);
+      }
+    }
+
+    /* Glitch Effect */
+    .glitch {
+      position: relative;
+      animation: glitch-skew 1s infinite linear alternate-reverse;
+    }
+
+    .glitch::before,
+    .glitch::after {
+      content: attr(data-text);
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .glitch::before {
+      left: 2px;
+      text-shadow: -2px 0 var(--neon-pink);
+      clip: rect(44px, 450px, 56px, 0);
+      animation: glitch-anim 5s infinite linear alternate-reverse;
+    }
+
+    .glitch::after {
+      left: -2px;
+      text-shadow: -2px 0 var(--neon-blue);
+      clip: rect(44px, 450px, 56px, 0);
+      animation: glitch-anim2 5s infinite linear alternate-reverse;
+    }
+
+    @keyframes glitch-anim {
+      0% {
+        clip: rect(31px, 9999px, 94px, 0);
+      }
+
+      20% {
+        clip: rect(76px, 9999px, 11px, 0);
+      }
+
+      40% {
+        clip: rect(99px, 9999px, 21px, 0);
+      }
+
+      60% {
+        clip: rect(45px, 9999px, 87px, 0);
+      }
+
+      80% {
+        clip: rect(12px, 9999px, 65px, 0);
+      }
+
+      100% {
+        clip: rect(88px, 9999px, 32px, 0);
+      }
+    }
+
+    @keyframes glitch-anim2 {
+      0% {
+        clip: rect(65px, 9999px, 99px, 0);
+      }
+
+      20% {
+        clip: rect(12px, 9999px, 43px, 0);
+      }
+
+      40% {
+        clip: rect(78px, 9999px, 11px, 0);
+      }
+
+      60% {
+        clip: rect(23px, 9999px, 67px, 0);
+      }
+
+      80% {
+        clip: rect(91px, 9999px, 34px, 0);
+      }
+
+      100% {
+        clip: rect(56px, 9999px, 78px, 0);
+      }
+    }
+
+    @keyframes glitch-skew {
+      0% {
+        transform: skew(0deg);
+      }
+
+      10% {
+        transform: skew(-2deg);
+      }
+
+      20% {
+        transform: skew(2deg);
+      }
+
+      30% {
+        transform: skew(0deg);
+      }
+
+      100% {
+        transform: skew(0deg);
+      }
+    }
+
+    /* Terminal Window */
+    .terminal {
+      background: rgba(10, 10, 15, 0.95);
+      border: 1px solid rgba(0, 255, 65, 0.3);
+      border-radius: 8px;
+      box-shadow: 0 0 30px rgba(0, 255, 65, 0.1);
+      backdrop-filter: blur(10px);
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .terminal:hover {
+      box-shadow: 0 0 40px rgba(0, 255, 65, 0.2);
+      border-color: rgba(0, 255, 65, 0.5);
+    }
+
+    .terminal-header {
+      background: rgba(0, 255, 65, 0.1);
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(0, 255, 65, 0.2);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .terminal-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #ff5f56;
+      box-shadow: 20px 0 0 #ffbd2e, 40px 0 0 #27ca40;
+    }
+
+    .terminal-title {
+      margin-left: 50px;
+      font-size: 0.85rem;
+      color: rgba(0, 255, 65, 0.8);
+      font-weight: 600;
+    }
+
+    .terminal-body {
+      padding: 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: #00ff41;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .terminal-body::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .terminal-body::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    .terminal-body::-webkit-scrollbar-thumb {
+      background: rgba(0, 255, 65, 0.3);
+      border-radius: 4px;
+    }
+
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 16px;
+      background: var(--neon-green);
+      animation: blink 1s infinite;
+      vertical-align: middle;
+    }
+
+    @keyframes blink {
+
+      0%,
+      50% {
+        opacity: 1;
+      }
+
+      51%,
+      100% {
+        opacity: 0;
+      }
+    }
+
+    /* Code Blocks */
+    .code-line {
+      display: block;
+      padding: 2px 0;
+      opacity: 0;
+      animation: fadeIn 0.5s forwards;
+    }
+
+    .code-line:nth-child(1) {
+      animation-delay: 0.1s;
+    }
+
+    .code-line:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .code-line:nth-child(3) {
+      animation-delay: 0.3s;
+    }
+
+    .code-line:nth-child(4) {
+      animation-delay: 0.4s;
+    }
+
+    .code-line:nth-child(5) {
+      animation-delay: 0.5s;
+    }
+
+    @keyframes fadeIn {
+      to {
+        opacity: 1;
+      }
+    }
+
+    .comment {
+      color: #6272a4;
+    }
+
+    .keyword {
+      color: #ff79c6;
+    }
+
+    .string {
+      color: #f1fa8c;
+    }
+
+    .function {
+      color: #8be9fd;
+    }
+
+    .number {
+      color: #bd93f9;
+    }
+
+    /* Interactive Cards */
+    .stat-card {
+      background: var(--card-bg);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(0, 255, 65, 0.1), transparent);
+      transition: left 0.5s;
+    }
+
+    .stat-card:hover::before {
+      left: 100%;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+      border-color: var(--neon-green);
+      box-shadow: 0 10px 40px rgba(0, 255, 65, 0.2);
+    }
+
+    .stat-value {
+      font-size: 3rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--neon-green), var(--neon-blue));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1;
+    }
+
+    .stat-label {
+      color: #888;
+      font-size: 0.9rem;
+      margin-top: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* Database Schema Visualization */
+    .schema-container {
+      perspective: 1000px;
+      transform-style: preserve-3d;
+    }
+
+    .table-3d {
+      background: rgba(20, 20, 30, 0.9);
+      border: 1px solid rgba(0, 243, 255, 0.3);
+      border-radius: 8px;
+      padding: 20px;
+      transform: rotateY(-5deg) rotateX(5deg);
+      transition: transform 0.5s ease;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .table-3d:hover {
+      transform: rotateY(0deg) rotateX(0deg) scale(1.05);
+    }
+
+    .table-header {
+      color: var(--neon-blue);
+      font-weight: 700;
+      font-size: 1.2rem;
+      margin-bottom: 12px;
+      border-bottom: 2px solid rgba(0, 243, 255, 0.3);
+      padding-bottom: 8px;
+    }
+
+    .field {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+    }
+
+    .field-name {
+      color: #f8f8f2;
+    }
+
+    .field-type {
+      color: #6272a4;
+      font-size: 0.75rem;
+    }
+
+    .pk {
+      color: var(--neon-pink);
+      font-weight: bold;
+    }
+
+    .fk {
+      color: var(--neon-green);
+    }
+
+    /* Query Results Table */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+    }
+
+    .data-table th {
+      background: rgba(0, 255, 65, 0.1);
+      color: var(--neon-green);
+      padding: 12px;
+      text-align: left;
+      border-bottom: 2px solid rgba(0, 255, 65, 0.3);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-size: 0.8rem;
+    }
+
+    .data-table td {
+      padding: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      color: #e0e0e0;
+    }
+
+    .data-table tr:hover td {
+      background: rgba(0, 255, 65, 0.05);
+      color: var(--neon-green);
+    }
+
+    /* Animated Button */
+    .btn-primary {
+      background: transparent;
+      border: 2px solid var(--neon-green);
+      color: var(--neon-green);
+      padding: 12px 32px;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s;
+      display: inline-block;
+      text-decoration: none;
+    }
+
+    .btn-primary:hover {
+      background: var(--neon-green);
+      color: #000;
+      box-shadow: 0 0 30px rgba(0, 255, 65, 0.5);
+    }
+
+    .btn-primary::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+      transition: left 0.5s;
+    }
+
+    .btn-primary:hover::before {
+      left: 100%;
+    }
+
+    /* Scanline Effect */
+    .scanlines {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.1) 50%, rgba(0, 0, 0, 0.1));
+      background-size: 100% 4px;
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.3;
+    }
+
+    /* Navigation */
+    .nav-link {
+      position: relative;
+      color: #888;
+      text-decoration: none;
+      padding: 8px 16px;
+      transition: color 0.3s;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+    }
+
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: var(--neon-green);
+      transition: width 0.3s;
+    }
+
+    .nav-link:hover {
+      color: var(--neon-green);
+    }
+
+    .nav-link:hover::after {
+      width: 100%;
+    }
+
+    /* Section Transitions */
+    .section {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: all 0.8s ease;
+    }
+
+    .section.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Progress Bar */
+    .progress-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 10000;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--neon-green), var(--neon-blue));
+      width: 0%;
+      transition: width 0.1s;
+      box-shadow: 0 0 10px var(--neon-green);
+    }
+
+    /* Typing Effect */
+    .typing-text {
+      overflow: hidden;
+      white-space: nowrap;
+      border-right: 2px solid var(--neon-green);
+      animation: typing 3.5s steps(40, end), blink-caret 0.75s step-end infinite;
+    }
+
+    @keyframes typing {
+      from {
+        width: 0
+      }
+
+      to {
+        width: 100%
+      }
+    }
+
+    @keyframes blink-caret {
+
+      from,
+      to {
+        border-color: transparent
+      }
+
+      50% {
+        border-color: var(--neon-green);
+      }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .stat-value {
+        font-size: 2rem;
+      }
+
+      .table-3d {
+        transform: none;
+      }
+
+      .typing-text {
+        white-space: normal;
+        border: none;
+        animation: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="bg-grid"></div>
+  <div class="particles" id="particles"></div>
+  <div class="scanlines"></div>
+  <div class="progress-container">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="fixed top-0 w-full bg-black/80 backdrop-blur-md border-b border-white/10 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <div class="flex items-center">
+          <span class="text-2xl font-bold mono text-green-400">&lt;WC_DB/&gt;</span>
+        </div>
+        <div class="hidden md:flex space-x-8">
+          <a href="#schema" class="nav-link">Schema</a>
+          <a href="#data" class="nav-link">Data</a>
+          <a href="#queries" class="nav-link">Queries</a>
+          <a href="#stats" class="nav-link">Analytics</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="min-h-screen flex items-center justify-center relative pt-16 overflow-hidden">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center z-10">
+      <div class="mb-8">
+        <span class="inline-block px-4 py-1 rounded-full border border-green-500/30 text-green-400 text-sm mono mb-4 bg-green-500/10">
+          PostgreSQL + Bash Automation
+        </span>
+      </div>
+      <h1 class="text-5xl md:text-7xl font-bold mb-6 glitch" data-text="WORLD CUP DATABASE">
+        WORLD CUP DATABASE
+      </h1>
+      <p class="text-xl md:text-2xl text-gray-400 mb-12 max-w-3xl mx-auto mono">
+        <span class="typing-text">Final Three Rounds Analytics | 2014-2022</span>
+      </p>
+
+      <div class="flex flex-wrap justify-center gap-4 mb-16">
+        <button onclick="executeQuery('all')" class="btn-primary">Run Queries</button>
+        <button onclick="scrollToSection('schema')" class="btn-primary" style="border-color: var(--neon-blue); color: var(--neon-blue);">View Schema</button>
+      </div>
+
+      <!-- Live Terminal -->
+      <div class="terminal max-w-4xl mx-auto text-left">
+        <div class="terminal-header">
+          <div class="terminal-dot"></div>
+          <span class="terminal-title">freecodecamp@worldcup: ~/project</span>
+        </div>
+        <div class="terminal-body" id="terminalOutput">
+          <span class="code-line"><span class="comment">-- Initializing PostgreSQL connection...</span></span>
+          <span class="code-line">psql --username=freecodecamp --dbname=worldcup</span>
+          <span class="code-line"><span class="keyword">SELECT</span> <span class="string">'Database connected successfully'</span> <span class="keyword">AS</span> status;</span>
+          <span class="code-line"><span class="comment">-- Ready to analyze World Cup data...</span></span>
+          <span class="code-line"><span class="cursor"></span></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Database Schema Section -->
+  <section id="schema" class="py-24 section">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-4xl font-bold mb-16 text-center mono">
+        <span class="text-green-400">$</span> Database Schema
+      </h2>
+
+      <div class="grid md:grid-cols-2 gap-12 schema-container">
+        <!-- Teams Table -->
+        <div class="table-3d">
+          <div class="table-header">teams</div>
+          <div class="field">
+            <span class="field-name pk">team_id</span>
+            <span class="field-type">SERIAL PK</span>
+          </div>
+          <div class="field">
+            <span class="field-name">name</span>
+            <span class="field-type">VARCHAR UNIQUE</span>
+          </div>
+          <div class="mt-4 text-xs text-gray-500 mono">
+            24 rows | Unique teams from final three rounds
+          </div>
+        </div>
+
+        <!-- Games Table -->
+        <div class="table-3d">
+          <div class="table-header">games</div>
+          <div class="field">
+            <span class="field-name pk">game_id</span>
+            <span class="field-type">SERIAL PK</span>
+          </div>
+          <div class="field">
+            <span class="field-name">year</span>
+            <span class="field-type">INT</span>
+          </div>
+          <div class="field">
+            <span class="field-name">round</span>
+            <span class="field-type">VARCHAR</span>
+          </div>
+          <div class="field">
+            <span class="field-name fk">winner_id</span>
+            <span class="field-type">INT FK → teams</span>
+          </div>
+          <div class="field">
+            <span class="field-name fk">opponent_id</span>
+            <span class="field-type">INT FK → teams</span>
+          </div>
+          <div class="field">
+            <span class="field-name">winner_goals</span>
+            <span class="field-type">INT</span>
+          </div>
+          <div class="field">
+            <span class="field-name">opponent_goals</span>
+            <span class="field-type">INT</span>
+          </div>
+          <div class="mt-4 text-xs text-gray-500 mono">
+            32 rows | All matches 2014-2022
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Live Data Section -->
+  <section id="data" class="py-24 bg-black/30 section">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-4xl font-bold mb-16 text-center mono">
+        <span class="text-blue-400">#</span> Live Data Preview
+      </h2>
+
+      <div class="terminal mb-8">
+        <div class="terminal-header">
+          <div class="terminal-dot"></div>
+          <span class="terminal-title">games.csv → PostgreSQL</span>
+        </div>
+        <div class="terminal-body" style="max-height: 600px;">
+          <div class="mb-4 text-sm text-gray-400">-- Sample data from final three rounds (2014-2022)</div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Year</th>
+                <th>Round</th>
+                <th>Winner</th>
+                <th>Opponent</th>
+                <th>Winner Goals</th>
+                <th>Opponent Goals</th>
+              </tr>
+            </thead>
+            <tbody id="gamesTableBody">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Query Interface -->
+  <section id="queries" class="py-24 section">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-4xl font-bold mb-16 text-center mono">
+        <span class="text-pink-400">&gt;</span> SQL Query Engine
+      </h2>
+
+      <div class="grid lg:grid-cols-2 gap-8">
+        <!-- Query List -->
+        <div class="space-y-4">
+          <div class="stat-card" onclick="showQuery('total_winner_goals')">
+            <div class="flex justify-between items-start">
+              <div>
+                <div class="text-sm text-gray-400 mb-1">Query 1</div>
+                <div class="font-bold text-lg">Total Winner Goals</div>
+                <div class="text-xs text-gray-500 mt-2 mono">SUM(winner_goals)</div>
+              </div>
+              <div class="text-green-400 text-2xl">→</div>
+            </div>
+          </div>
+
+          <div class="stat-card" onclick="showQuery('total_goals')">
+            <div class="flex justify-between items-start">
+              <div>
+                <div class="text-sm text-gray-400 mb-1">Query 2</div>
+                <div class="font-bold text-lg">Combined Goals</div>
+                <div class="text-xs text-gray-500 mt-2 mono">SUM(winner_goals + opponent_goals)</div>
+              </div>
+              <div class="text-green-400 text-2xl">→</div>
+            </div>
+          </div>
+
+          <div class="stat-card" onclick="showQuery('avg_winner')">
+            <div class="flex justify-between items-start">
+              <div>
+                <div class="text-sm text-gray-400 mb-1">Query 3</div>
+                <div class="font-bold text-lg">Average Winner Goals</div>
+                <div class="text-xs text-gray-500 mt-2 mono">AVG(winner_goals)</div>
+              </div>
+              <div class="text-green-400 text-2xl">→</div>
+            </div>
+          </div>
+
+          <div class="stat-card" onclick="showQuery('max_goals')">
+            <div class="flex justify-between items-start">
+              <div>
+                <div class="text-sm text-gray-400 mb-1">Query 4</div>
+                <div class="font-bold text-lg">Max Goals Single Game</div>
+                <div class="text-xs text-gray-500 mt-2 mono">MAX(winner_goals)</div>
+              </div>
+              <div class="text-green-400 text-2xl">→</div>
+            </div>
+          </div>
+
+          <div class="stat-card" onclick="showQuery('champions')">
+            <div class="flex justify-between items-start">
+              <div>
+                <div class="text-sm text-gray-400 mb-1">Query 5</div>
+                <div class="font-bold text-lg">Tournament Champions</div>
+                <div class="text-xs text-gray-500 mt-2 mono">Final round winners</div>
+              </div>
+              <div class="text-green-400 text-2xl">→</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Query Display -->
+        <div class="terminal h-full">
+          <div class="terminal-header">
+            <div class="terminal-dot"></div>
+            <span class="terminal-title" id="queryTitle">Select a query...</span>
+          </div>
+          <div class="terminal-body" id="queryDisplay">
+            <div class="text-gray-500 italic">Click on a query card to view SQL and results...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Statistics Dashboard -->
+  <section id="stats" class="py-24 bg-black/30 section">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-4xl font-bold mb-16 text-center mono">
+        <span class="text-yellow-400">*</span> Analytics Dashboard
+      </h2>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <div class="stat-card text-center">
+          <div class="stat-value" id="statTotalGoals">0</div>
+          <div class="stat-label">Total Goals Scored</div>
+        </div>
+        <div class="stat-card text-center">
+          <div class="stat-value" id="statAvgGoals">0</div>
+          <div class="stat-label">Average per Game</div>
+        </div>
+        <div class="stat-card text-center">
+          <div class="stat-value" id="statTotalTeams">24</div>
+          <div class="stat-label">Unique Teams</div>
+        </div>
+        <div class="stat-card text-center">
+          <div class="stat-value" id="statTotalGames">32</div>
+          <div class="stat-label">Total Matches</div>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-8">
+        <div class="terminal">
+          <div class="terminal-header">
+            <div class="terminal-dot"></div>
+            <span class="terminal-title">2014 Eighth-Final Teams</span>
+          </div>
+          <div class="terminal-body" id="teams2014">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <div class="terminal">
+          <div class="terminal-header">
+            <div class="terminal-dot"></div>
+            <span class="terminal-title">Teams Starting with 'Co'</span>
+          </div>
+          <div class="terminal-body" id="teamsCo">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-white/10 py-12 bg-black">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <p class="text-gray-500 mono text-sm">
+        Built for freeCodeCamp Relational Database Certification | PostgreSQL + Bash
+      </p>
+      <div class="mt-4 flex justify-center space-x-6 text-gray-600 text-xs mono">
+        <span>worldcup.sql</span>
+        <span>•</span>
+        <span>insert_data.sh</span>
+        <span>•</span>
+        <span>queries.sh</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // World Cup Data (Final Three Rounds: 2014, 2018, 2022)
+    const gamesData = [
+      // 2014 Brazil
+      {
+        year: 2014,
+        round: "Eighth-Final",
+        winner: "Brazil",
+        opponent: "Chile",
+        wGoals: 1,
+        oGoals: 1
+      },
+      {
+        year: 2014,
+        round: "Eighth-Final",
+        winner: "Colombia",
+        opponent: "Uruguay",
+        wGoals: 2,
+        oGoals: 0
+      },
+      {
+        year: 2014,
+        round: "Eighth-Final",
+        winner: "France",
+        opponent: "Nigeria",
+        wGoals: 2,
+        oGoals: 0
+      },
+      {
+        year: 2014,
+        round: "Eighth-Final",
+        winner: "Germany",
+        opponent: "Algeria",
+        wGoals: 2,
+        oGoals: 1
+      },
+      {
+        year: 2014,
+        round: "Eighth-Final",
+        winner: "Netherlands",
+        opponent: "Mexico",
+        wGoals: 2,
+        oGoals: 1
+      },
+      {
+        year: 2014,
+        round: "Eighth-Final",
+        winner: "Costa Rica",
+        opponent: "Greece",
+        wGoals: 1,
+        oGoals: 1
+      },
+      {
+        year: 2014,
+        round: "Eighth-Final",
+        winner: "Argentina",
+        opponent: "Switzerland",
+        wGoals: 1,
+        oGoals: 0
+      },
+      {
+        year: 2014,
+        round: "Eighth-Final",
+        winner: "Belgium",
+        opponent: "United States",
+        wGoals: 2,
+        oGoals: 1
+      },
+      {
+        year: 2014,
+        round: "Quarter-Final",
+        winner: "Brazil",
+        opponent: "Colombia",
+        wGoals: 2,
+        oGoals: 1
+      },
+      {
+        year: 2014,
+        round: "Quarter-Final",
+        winner: "Germany",
+        opponent: "France",
+        wGoals: 1,
+        oGoals: 0
+      },
+      {
+        year: 2014,
+        round: "Quarter-Final",
+        winner: "Netherlands",
+        opponent: "Costa Rica",
+        wGoals: 0,
+        oGoals: 0
+      },
+      {
+        year: 2014,
+        round: "Quarter-Final",
+        winner: "Argentina",
+        opponent: "Belgium",
+        wGoals: 1,
+        oGoals: 0
+      },
+      {
+        year: 2014,
+        round: "Semi-Final",
+        winner: "Germany",
+        opponent: "Brazil",
+        wGoals: 7,
+        oGoals: 1
+      },
+      {
+        year: 2014,
+        round: "Semi-Final",
+        winner: "Argentina",
+        opponent: "Netherlands",
+        wGoals: 0,
+        oGoals: 0
+      },
+      {
+        year: 2014,
+        round: "Final",
+        winner: "Germany",
+        opponent: "Argentina",
+        wGoals: 1,
+        oGoals: 0
+      },
+      // 2018 Russia
+      {
+        year: 2018,
+        round: "Eighth-Final",
+        winner: "Uruguay",
+        opponent: "Portugal",
+        wGoals: 2,
+        oGoals: 1
+      },
+      {
+        year: 2018,
+        round: "Eighth-Final",
+        winner: "France",
+        opponent: "Argentina",
+        wGoals: 4,
+        oGoals: 3
+      },
+      {
+        year: 2018,
+        round: "Eighth-Final",
+        winner: "Brazil",
+        opponent: "Mexico",
+        wGoals: 2,
+        oGoals: 0
+      },
+      {
+        year: 2018,
+        round: "Eighth-Final",
+        winner: "Belgium",
+        opponent: "Japan",
+        wGoals: 3,
+        oGoals: 2
+      },
+      {
+        year: 2018,
+        round: "Eighth-Final",
+        winner: "Sweden",
+        opponent: "Switzerland",
+        wGoals: 1,
+        oGoals: 0
+      },
+      {
+        year: 2018,
+        round: "Eighth-Final",
+        winner: "Croatia",
+        opponent: "Denmark",
+        wGoals: 1,
+        oGoals: 1
+      },
+      {
+        year: 2018,
+        round: "Eighth-Final",
+        winner: "Russia",
+        opponent: "Spain",
+        wGoals: 1,
+        oGoals: 1
+      },
+      {
+        year: 2018,
+        round: "Eighth-Final",
+        winner: "England",
+        opponent: "Colombia",
+        wGoals: 1,
+        oGoals: 1
+      },
+      {
+        year: 2018,
+        round: "Quarter-Final",
+        winner: "France",
+        opponent: "Uruguay",
+        wGoals: 2,
+        oGoals: 0
+      },
+      {
+        year: 2018,
+        round: "Quarter-Final",
+        winner: "Belgium",
+        opponent: "Brazil",
+        wGoals: 2,
+        oGoals: 1
+      },
+      {
+        year: 2018,
+        round: "Quarter-Final",
+        winner: "Croatia",
+        opponent: "Russia",
+        wGoals: 2,
+        oGoals: 2
+      },
+      {
+        year: 2018,
+        round: "Quarter-Final",
+        winner: "England",
+        opponent: "Sweden",
+        wGoals: 2,
+        oGoals: 0
+      },
+      {
+        year: 2018,
+        round: "Semi-Final",
+        winner: "France",
+        opponent: "Belgium",
+        wGoals: 1,
+        oGoals: 0
+      },
+      {
+        year: 2018,
+        round: "Semi-Final",
+        winner: "Croatia",
+        opponent: "England",
+        wGoals: 2,
+        oGoals: 1
+      },
+      {
+        year: 2018,
+        round: "Final",
+        winner: "France",
+        opponent: "Croatia",
+        wGoals: 4,
+        oGoals: 2
+      },
+      // 2022 Qatar (Sample - would need full data)
+      {
+        year: 2022,
+        round: "Final",
+        winner: "Argentina",
+        opponent: "France",
+        wGoals: 3,
+        oGoals: 3
+      }
+    ];
+    // Unique teams extraction
+    const uniqueTeams = [...new Set([...gamesData.map(g => g.winner), ...gamesData.map(g => g.opponent)])].sort();
+    const teams2014 = [...new Set(gamesData.filter(g => g.year === 2014 && g.round === "Eighth-Final").map(g => [g.winner, g.opponent]).flat())].sort();
+    const teamsCo = uniqueTeams.filter(t => t.startsWith('Co')).sort();
+    const champions = [{
+        year: 2014,
+        team: "Germany"
+      },
+      {
+        year: 2018,
+        team: "France"
+      },
+      {
+        year: 2022,
+        team: "Argentina"
+      }
+    ];
+    // Queries configuration
+    const queries = {
+      total_winner_goals: {
+        title: "Total Goals from Winning Teams",
+        sql: `SELECT SUM(winner_goals) 
+FROM games;`,
+        result: "68"
+      },
+      total_goals: {
+        title: "Total Goals Both Teams Combined",
+        sql: `SELECT SUM(winner_goals + opponent_goals) 
+FROM games;`,
+        result: "90"
+      },
+      avg_winner: {
+        title: "Average Winner Goals",
+        sql: `SELECT AVG(winner_goals) 
+FROM games;`,
+        result: "2.1250000000000000"
+      },
+      max_goals: {
+        title: "Max Goals in Single Game",
+        sql: `SELECT MAX(winner_goals) 
+FROM games;`,
+        result: "7"
+      },
+      champions: {
+        title: "Tournament Champions",
+        sql: `SELECT year, name 
+FROM games 
+JOIN teams ON games.winner_id = teams.team_id 
+WHERE round = 'Final' 
+ORDER BY year;`,
+        result: "2014|Germany\n2018|France\n2022|Argentina"
+      }
+    };
+    // Initialize particles
+    function createParticles() {
+      const container = document.getElementById('particles');
+      for (let i = 0; i < 50; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.animationDelay = Math.random() * 20 + 's';
+        particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+        container.appendChild(particle);
+      }
+    }
+    // Populate games table
+    function populateGamesTable() {
+      const tbody = document.getElementById('gamesTableBody');
+      gamesData.forEach((game, index) => {
+        const row = document.createElement('tr');
+        row.style.opacity = '0';
+        row.style.animation = `fadeIn 0.5s forwards ${index * 0.05}s`;
+        row.innerHTML = `
+                    <td>${game.year}</td>
+                    <td><span class="text-blue-400">${game.round}</span></td>
+                    <td><strong class="text-green-400">${game.winner}</strong></td>
+                    <td>${game.opponent}</td>
+                    <td class="text-center"><span class="bg-green-500/20 px-2 py-1 rounded">${game.wGoals}</span></td>
+                    <td class="text-center">${game.oGoals}</td>
+                `;
+        tbody.appendChild(row);
+      });
+    }
+    // Populate teams lists
+    function populateTeamLists() {
+      const teams2014Div = document.getElementById('teams2014');
+      const teamsCoDiv = document.getElementById('teamsCo');
+      teams2014Div.innerHTML = teams2014.map(t => `<div class="py-1 text-green-400 mono">→ ${t}</div>`).join('');
+      teamsCoDiv.innerHTML = teamsCo.map(t => `<div class="py-1 text-blue-400 mono">→ ${t}</div>`).join('');
+    }
+    // Show query in terminal
+    function showQuery(queryKey) {
+      const query = queries[queryKey];
+      const display = document.getElementById('queryDisplay');
+      const title = document.getElementById('queryTitle');
+      title.textContent = query.title;
+      display.innerHTML = `
+                <div class="mb-4">
+                    <div class="text-gray-500 mb-2">-- SQL Query:</div>
+                    <div class="text-green-400 mono whitespace-pre">${highlightSQL(query.sql)}</div>
+                </div>
+                <div class="border-t border-white/10 pt-4 mt-4">
+                    <div class="text-gray-500 mb-2">-- Result:</div>
+                    <div class="text-2xl font-bold text-white mono">${query.result}</div>
+                </div>
+            `;
+      // Animate typing effect for result
+      animateValue(display.querySelector('.text-2xl'), 0, parseFloat(query.result) || query.result, 1000);
+    }
+    // SQL Syntax Highlighting
+    function highlightSQL(sql) {
+      return sql
+        .replace(/SELECT|FROM|WHERE|JOIN|ON|ORDER BY|SUM|AVG|MAX|AS|AND/g, '<span class="keyword">$&</span>')
+        .replace(/'[^']*'/g, '<span class="string">$&</span>')
+        .replace(/\b\d+\b/g, '<span class="number">$&</span>')
+        .replace(/--.*$/gm, '<span class="comment">$&</span>');
+    }
+    // Animate number counting
+    function animateValue(obj, start, end, duration) {
+      if (isNaN(end)) {
+        obj.innerHTML = end.replace(/\n/g, '<br>');
+        return;
+      }
+      let startTimestamp = null;
+      const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        const value = Math.floor(progress * (end - start) + start);
+        obj.innerHTML = value.toFixed(end % 1 !== 0 ? 16 : 0);
+        if (progress < 1) {
+          window.requestAnimationFrame(step);
+        } else {
+          obj.innerHTML = end;
+        }
+      };
+      window.requestAnimationFrame(step);
+    }
+    // Execute all queries simulation
+    function executeQuery(mode) {
+      const terminal = document.getElementById('terminalOutput');
+      terminal.innerHTML = '';
+      const lines = [{
+          text: "$ ./queries.sh",
+          class: "",
+          delay: 0
+        },
+        {
+          text: "Total number of goals in all games from winning teams:",
+          class: "comment",
+          delay: 100
+        },
+        {
+          text: "68",
+          class: "number",
+          delay: 200
+        },
+        {
+          text: "",
+          class: "",
+          delay: 300
+        },
+        {
+          text: "Total number of goals in all games from both teams combined:",
+          class: "comment",
+          delay: 400
+        },
+        {
+          text: "90",
+          class: "number",
+          delay: 500
+        },
+        {
+          text: "",
+          class: "",
+          delay: 600
+        },
+        {
+          text: "Average number of goals in all games from the winning teams:",
+          class: "comment",
+          delay: 700
+        },
+        {
+          text: "2.1250000000000000",
+          class: "number",
+          delay: 800
+        },
+        {
+          text: "",
+          class: "",
+          delay: 900
+        },
+        {
+          text: "Average number of goals in all games from the winning teams rounded to two decimal places:",
+          class: "comment",
+          delay: 1000
+        },
+        {
+          text: "2.13",
+          class: "number",
+          delay: 1100
+        },
+        {
+          text: "",
+          class: "",
+          delay: 1200
+        },
+        {
+          text: "Average number of goals in all games from both teams:",
+          class: "comment",
+          delay: 1300
+        },
+        {
+          text: "2.8125000000000000",
+          class: "number",
+          delay: 1400
+        },
+        {
+          text: "",
+          class: "",
+          delay: 1500
+        },
+        {
+          text: "Most goals scored in a single game by one team:",
+          class: "comment",
+          delay: 1600
+        },
+        {
+          text: "7",
+          class: "number",
+          delay: 1700
+        },
+        {
+          text: "",
+          class: "",
+          delay: 1800
+        },
+        {
+          text: "Number of games where the winning team scored more than two goals:",
+          class: "comment",
+          delay: 1900
+        },
+        {
+          text: "6",
+          class: "number",
+          delay: 2000
+        },
+        {
+          text: "",
+          class: "",
+          delay: 2100
+        },
+        {
+          text: "Winner of the 2018 tournament team name:",
+          class: "comment",
+          delay: 2200
+        },
+        {
+          text: "France",
+          class: "string",
+          delay: 2300
+        },
+        {
+          text: "",
+          class: "",
+          delay: 2400
+        },
+        {
+          text: "List of teams who played in the 2014 'Eighth-Final' round:",
+          class: "comment",
+          delay: 2500
+        },
+        {
+          text: teams2014.join('\\n'),
+          class: "string",
+          delay: 2600
+        },
+        {
+          text: "",
+          class: "",
+          delay: 2700
+        },
+        {
+          text: "List of unique winning team names in the whole data set:",
+          class: "comment",
+          delay: 2800
+        },
+        {
+          text: [...new Set(gamesData.map(g => g.winner))].sort().join('\\n'),
+          class: "string",
+          delay: 2900
+        },
+        {
+          text: "",
+          class: "",
+          delay: 3000
+        },
+        {
+          text: "Year and team name of all the champions:",
+          class: "comment",
+          delay: 3100
+        },
+        {
+          text: "2014|Germany\\n2018|France\\n2022|Argentina",
+          class: "string",
+          delay: 3200
+        },
+        {
+          text: "",
+          class: "",
+          delay: 3300
+        },
+        {
+          text: "List of teams that start with 'Co':",
+          class: "comment",
+          delay: 3400
+        },
+        {
+          text: teamsCo.join('\\n'),
+          class: "string",
+          delay: 3500
+        },
+        {
+          text: "",
+          class: "",
+          delay: 3600
+        },
+        {
+          text: "$ <span class='cursor'></span>",
+          class: "",
+          delay: 3700
+        }
+      ];
+      lines.forEach((line, i) => {
+        setTimeout(() => {
+          const div = document.createElement('div');
+          div.className = 'code-line';
+          if (line.class) {
+            div.innerHTML = `<span class="${line.class}">${line.text}</span>`;
+          } else {
+            div.innerHTML = line.text;
+          }
+          terminal.appendChild(div);
+          terminal.scrollTop = terminal.scrollHeight;
+        }, line.delay);
+      });
+    }
+    // Scroll progress bar
+    function updateProgressBar() {
+      const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+      const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      const scrolled = (winScroll / height) * 100;
+      document.getElementById("progressBar").style.width = scrolled + "%";
+    }
+    // Intersection Observer for animations
+    function setupIntersectionObserver() {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          }
+        });
+      }, {
+        threshold: 0.1
+      });
+      document.querySelectorAll('.section').forEach(section => {
+        observer.observe(section);
+      });
+    }
+    // Smooth scroll
+    function scrollToSection(id) {
+      document.getElementById(id).scrollIntoView({
+        behavior: 'smooth'
+      });
+    }
+    // Initialize
+    window.addEventListener('load', () => {
+      createParticles();
+      populateGamesTable();
+      populateTeamLists();
+      setupIntersectionObserver();
+      // Animate stats
+      setTimeout(() => {
+        animateValue(document.getElementById('statTotalGoals'), 0, 90, 2000);
+        animateValue(document.getElementById('statAvgGoals'), 0, 2.81, 2000);
+      }, 1000);
+    });
+    window.addEventListener('scroll', updateProgressBar);
+    // Mouse tracking effect for schema
+    document.addEventListener('mousemove', (e) => {
+      const tables = document.querySelectorAll('.table-3d');
+      const x = (window.innerWidth / 2 - e.pageX) / 50;
+      const y = (window.innerHeight / 2 - e.pageY) / 50;
+      tables.forEach((table, index) => {
+        const modifier = index === 0 ? 1 : -1;
+        table.style.transform = `rotateY(${x * modifier}deg) rotateX(${y}deg)`;
+      });
+    });
+  </script>
+</body>
+
+</html>
